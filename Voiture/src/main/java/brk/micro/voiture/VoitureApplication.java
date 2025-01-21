@@ -23,7 +23,6 @@ public class VoitureApplication {
     public String getFullUrl() {
         return "http://" + host + ":" + port + "/Client";
     }
-    //rege
     public static void main(String[] args) {
         SpringApplication.run(VoitureApplication.class, args);
     }
