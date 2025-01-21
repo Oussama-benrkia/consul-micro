@@ -38,7 +38,6 @@ public class VoitureApplication {
                     voitureRepo.save(new Voiture("789GHI", "BMW", "X5", "2022", client));
                     System.out.println("Données initiales chargées avec succès");
                 }
-                // kjwkwbjfkjwbeojf
             } catch (Exception e) {
                 System.err.println("Erreur lors de l'initialisation des données: " + e.getMessage());
             }
