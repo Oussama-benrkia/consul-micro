@@ -26,6 +26,7 @@ public class VoitureApplication {
     public static void main(String[] args) {
         SpringApplication.run(VoitureApplication.class, args);
     }
+    //ef
     @Bean
     public CommandLineRunner initializeData(VoitureRepo voitureRepo, WebClient.Builder webClientBuilder) {
         return args -> {
