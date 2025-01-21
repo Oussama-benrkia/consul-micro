@@ -1,0 +1,87 @@
+pipeline {
+    agent any
+
+    environment {
+        // Define global variables
+        DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+    }
+
+    stages {
+
+        stage('Git Clone') {
+        steps {
+            script {
+                checkout([$class: 'GitSCM',
+                          branches: [[name: 'main']],
+                          userRemoteConfigs: [[url: 'https://github.com/Oussama-benrkia/consul-micro.git']]])
+            }
+            }
+        }
+
+        stage('Build Microservices') {
+            parallel {
+                stage('Build Client') {
+                    steps {
+                        script {
+                            echo 'Building Client Microservice...'
+                            dir('Client') {
+                                bat 'mvn clean package'
+                            }
+                        }
+                    }
+                }
+                stage('Build Voiture') {
+                    steps {
+                        script {
+                            echo 'Building Voiture Microservice...'
+                            dir('Voiture') {
+                                bat 'mvn clean package'
+                            }
+                        }
+                    }
+                }
+                stage('Build Gateway') {
+                    steps {
+                        script {
+                            echo 'Building Gateway Microservice...'
+                            dir('Gateway') {
+                                bat 'mvn clean package'
+                            }
+                        }
+                    }
+                }
+                stage('Build Config') {
+                    steps {
+                        script {
+                            echo 'Building Config Microservice...'
+                            dir('Config') {
+                                bat 'mvn clean package'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Run Docker Compose') {
+            steps {
+                script {
+                    echo 'Running Docker Compose...'
+                    bat "docker-compose up --build -d"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished.'
+            bat 'docker-compose ps'
+        }
+
+        cleanup {
+            echo 'Cleaning up workspace...'
+            deleteDir()
+        }
+    }
+}

@@ -1,0 +1,125 @@
+pipeline {
+    agent any
+
+    environment {
+        // Define global variables
+        DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+        SONAR_SCANNER_HOME = tool 'SonarQubeScanner' // Name configured in Jenkins for the SonarQube Scanner
+    }
+
+    stages {
+
+        stage('Git Clone') {
+            steps {
+                script {
+                    checkout([$class: 'GitSCM',
+                              branches: [[name: 'main']],
+                              userRemoteConfigs: [[url: 'https://github.com/Oussama-benrkia/consul-micro.git']]])
+                }
+            }
+        }
+
+        stage('Build Microservices') {
+            parallel {
+                stage('Build Client') {
+                    steps {
+                        script {
+                            echo 'Building Client Microservice...'
+                            dir('Client') {
+                                bat 'mvn clean package'
+                            }
+                        }
+                    }
+                }
+                stage('Build Voiture') {
+                    steps {
+                        script {
+                            echo 'Building Voiture Microservice...'
+                            dir('Voiture') {
+                                bat 'mvn clean package'
+                            }
+                        }
+                    }
+                }
+                stage('Build Gateway') {
+                    steps {
+                        script {
+                            echo 'Building Gateway Microservice...'
+                            dir('Gateway') {
+                                bat 'mvn clean package'
+                            }
+                        }
+                    }
+                }
+                stage('Build Config') {
+                    steps {
+                        script {
+                            echo 'Building Config Microservice...'
+                            dir('Config') {
+                                bat 'mvn clean package'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            parallel {
+                stage('Analyze Client') {
+                    steps {
+                        script {
+                            withSonarQubeEnv('SonarQubeServer') { // Replace with your SonarQube Server name
+                                dir('Client') {
+                                    bat "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                                         -Dsonar.projectKey=Client  \
+                                         -Dsonar.sources=src/main/java \
+                                         -Dsonar.host.url=http://localhost:9000 \
+                                         -Dsonar.token=sqa_abaa42c6cdc54d4d69e067a78183881cb7a90058"
+                                }
+                            }
+                        }
+                    }
+                }
+                stage('Analyze Voiture') {
+                    steps {
+                        script {
+                            withSonarQubeEnv('SonarQubeServer') {
+                                dir('Voiture') {
+                                    bat "${SONAR_SCANNER_HOME}/bin/sonar-scanner \
+                                         -Dsonar.projectKey=Voiture  \
+                                         -Dsonar.sources=src/main/java \
+                                         -Dsonar.host.url=http://localhost:9000 \
+                                         -Dsonar.token=sqa_abaa42c6cdc54d4d69e067a78183881cb7a90058"
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+            }
+        }
+
+        stage('Run Docker Compose') {
+            steps {
+                script {
+                    echo 'Running Docker Compose...'
+                    bat "docker-compose up --build -d"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished.'
+            bat 'docker-compose ps'
+        }
+
+        cleanup {
+            echo 'Cleaning up workspace...'
+            deleteDir()
+        }
+    }
+}
